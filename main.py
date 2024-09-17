@@ -149,7 +149,7 @@ def get_mime_type(file_name):
 
 # Main application
 def main():
-    st.title("Chess Steganography")
+    st.title("Free Cloud Storage")
 
     # User authentication
     users = load_users()
