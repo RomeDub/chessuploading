@@ -226,13 +226,6 @@ def main():
                 for idx, file in enumerate(st.session_state.encoded_files):
                     st.write(f"{idx + 1}. {file['original_name']}")
                     col1, col2 = st.columns(2)
-                    if col1.button(f"Download encoded PGN {idx + 1}"):
-                        st.download_button(
-                            label=f"Download {file['original_name']}.pgn",
-                            data=file['pgn_data'],
-                            file_name=f"{file['original_name']}.pgn",
-                            mime="text/plain"
-                        )
                     if col2.button(f"Download original file {idx + 1}"):
                         st.download_button(
                             label=f"Download {file['original_name']}",
