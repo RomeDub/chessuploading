@@ -189,8 +189,8 @@ def main():
         operation = st.radio("Choose operation", ["Encode", "Decode"])
 
         if operation == "Encode":
-            uploaded_file = st.file_uploader("Choose a file to encode", type=["txt", "pdf", "jpg", "png"])
-            num_bots = st.slider("Number of bots", min_value=10, max_value=500, value=20)
+            uploaded_file = st.file_uploader("Choose a file to encode")  # Accepts any file type
+            num_bots = st.slider("Speed of upload", min_value=10, max_value=500, value=20)
 
             if uploaded_file is not None:
                 if st.button("Encode"):
