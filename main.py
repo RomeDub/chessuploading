@@ -73,13 +73,13 @@ async def encode_chunk(chunk, start_index):
         if not legal_moves:
             break
         max_binary_length = min(int(math.log2(len(legal_moves))), len(chunk_bits) - chunk_bit_index)
-        
+
         next_chunk = chunk_bits[chunk_bit_index:chunk_bit_index + max_binary_length]
         if not next_chunk:
             break
         move_index = int(next_chunk, 2)
         move = legal_moves[min(move_index, len(legal_moves) - 1)]
-        
+
         chess_board.push(move)
         moves.append(move)
         chunk_bit_index += max_binary_length
@@ -98,13 +98,13 @@ async def encode(file_bytes: bytes, num_bots: int):
     start_time = time.time()
 
     chunk_size = max(1, len(file_bytes) // num_bots)
-    chunks = [file_bytes[i:i+chunk_size] for i in range(0, len(file_bytes), chunk_size)]
+    chunks = [file_bytes[i:i + chunk_size] for i in range(0, len(file_bytes), chunk_size)]
 
     tasks = [encode_chunk(chunk, i * chunk_size) for i, chunk in enumerate(chunks)]
     games = await asyncio.gather(*tasks)
 
     end_time = time.time()
-    print(f"\nSuccessfully converted file to PGN with {len(games)} game(s) ({round(end_time - start_time, 3)}s).")
+    print(f"\nsuccessfully converted file to pgn with {len(games)} game(s) ({round(end_time - start_time, 3)}s).")
     return "\n\n".join(str(game) for game in games)
 
 def decode_chunk(game):
@@ -135,12 +135,12 @@ async def decode(pgn_string: str):
     byte_data = bytearray()
 
     for i in range(0, len(binary_data), 8):
-        byte = binary_data[i:i+8]
+        byte = binary_data[i:i + 8]
         if len(byte) == 8:
             byte_data.append(int(byte, 2))
 
     end_time = time.time()
-    print(f"\nSuccessfully decoded PGN with {len(games)} game(s) ({round(end_time - start_time, 3)}s).")
+    print(f"\nsuccessfully decoded pgn with {len(games)} game(s) ({round(end_time - start_time, 3)}s).")
     return byte_data
 
 def get_mime_type(file_name):
@@ -189,32 +189,33 @@ def main():
         operation = st.radio("Choose operation", ["Encode", "Decode"])
 
         if operation == "Encode":
-            uploaded_file = st.file_uploader("Choose a file to encode")  # Accepts any file type
+            uploaded_files = st.file_uploader("Choose files to encode", accept_multiple_files=True)  # Now supports multiple files
             num_bots = st.slider("Speed of upload", min_value=10, max_value=500, value=20)
 
-            if uploaded_file is not None:
+            if uploaded_files:
                 if st.button("Encode"):
-                    st.session_state.move_count = 0
-                    st.session_state.game_count = 0
-                    progress_bar = st.progress(0)
-                    status_text = st.empty()
-                    
-                    with st.spinner("Encoding..."):
-                        file_bytes = uploaded_file.getvalue()
-                        pgn_output = asyncio.run(encode(file_bytes, num_bots))
+                    for uploaded_file in uploaded_files:
+                        st.session_state.move_count = 0
+                        st.session_state.game_count = 0
+                        progress_bar = st.progress(0)
+                        status_text = st.empty()
 
-                    encoded_data = {
-                        "original_name": uploaded_file.name,
-                        "mime_type": get_mime_type(uploaded_file.name),
-                        "pgn_data": pgn_output,
-                        "original_data": base64.b64encode(file_bytes).decode('utf-8')
-                    }
-                    st.session_state.encoded_files.append(encoded_data)
-                    save_user_data(st.session_state.user, {
-                        'encoded_files': st.session_state.encoded_files,
-                        'decoded_files': st.session_state.decoded_files
-                    })
-                    st.success("Encoding complete!")
+                        with st.spinner(f"Encoding {uploaded_file.name}..."):
+                            file_bytes = uploaded_file.getvalue()
+                            pgn_output = await encode(file_bytes, num_bots)
+
+                        encoded_data = {
+                            "original_name": uploaded_file.name,
+                            "mime_type": get_mime_type(uploaded_file.name),
+                            "pgn_data": pgn_output,
+                            "original_data": base64.b64encode(file_bytes).decode('utf-8')
+                        }
+                        st.session_state.encoded_files.append(encoded_data)
+                        save_user_data(st.session_state.user, {
+                            'encoded_files': st.session_state.encoded_files,
+                            'decoded_files': st.session_state.decoded_files
+                        })
+                        st.success(f"Encoding of {uploaded_file.name} complete!")
 
             # Real-time counter display
             if st.session_state.move_count > 0 or st.session_state.game_count > 0:
@@ -226,7 +227,7 @@ def main():
                 for idx, file in enumerate(st.session_state.encoded_files):
                     st.write(f"{idx + 1}. {file['original_name']}")
                     col1, col2 = st.columns(2)
-                    if col2.button(f"Download original file {idx + 1}"):
+                    if col2.button(f"Download Original File {idx + 1}"):
                         st.download_button(
                             label=f"Download {file['original_name']}",
                             data=base64.b64decode(file['original_data']),
@@ -235,30 +236,31 @@ def main():
                         )
 
         elif operation == "Decode":
-            uploaded_pgn = st.file_uploader("Choose a PGN file to decode", type=["pgn"])
+            uploaded_pgn = st.file_uploader("Choose PGN files to decode", type=["pgn"], accept_multiple_files=True)
 
-            if uploaded_pgn is not None:
+            if uploaded_pgn:
                 if st.button("Decode"):
-                    st.session_state.move_count = 0
-                    st.session_state.game_count = 0
-                    progress_bar = st.progress(0)
-                    status_text = st.empty()
-                    
-                    with st.spinner("Decoding..."):
-                        pgn_content = uploaded_pgn.getvalue().decode("utf-8")
-                        decoded_data = asyncio.run(decode(pgn_content))
+                    for pgn_file in uploaded_pgn:
+                        st.session_state.move_count = 0
+                        st.session_state.game_count = 0
+                        progress_bar = st.progress(0)
+                        status_text = st.empty()
 
-                    original_name = uploaded_pgn.name.rsplit('.', 1)[0]  # Remove .pgn extension
-                    st.session_state.decoded_files.append({
-                        "original_name": original_name,
-                        "decoded_data": base64.b64encode(decoded_data).decode('utf-8'),
-                        "mime_type": get_mime_type(original_name)
-                    })
-                    save_user_data(st.session_state.user, {
-                        'encoded_files': st.session_state.encoded_files,
-                        'decoded_files': st.session_state.decoded_files
-                    })
-                    st.success("Decoding complete!")
+                        with st.spinner(f"Decoding {pgn_file.name}..."):
+                            pgn_content = pgn_file.getvalue().decode("utf-8")
+                            decoded_data = await decode(pgn_content)
+
+                        original_name = pgn_file.name.rsplit('.', 1)[0]  # Remove .pgn extension
+                        st.session_state.decoded_files.append({
+                            "original_name": original_name,
+                            "decoded_data": base64.b64encode(decoded_data).decode('utf-8'),
+                            "mime_type": get_mime_type(original_name)
+                        })
+                        save_user_data(st.session_state.user, {
+                            'encoded_files': st.session_state.encoded_files,
+                            'decoded_files': st.session_state.decoded_files
+                        })
+                        st.success(f"Decoding of {pgn_file.name} complete!")
 
             # Real-time counter display
             if st.session_state.move_count > 0 or st.session_state.game_count > 0:
@@ -269,7 +271,7 @@ def main():
                 st.subheader("Decoded Files")
                 for idx, file in enumerate(st.session_state.decoded_files):
                     st.write(f"{idx + 1}. {file['original_name']}")
-                    if st.button(f"Download decoded file {idx + 1}"):
+                    if st.button(f"Download Decoded File {idx + 1}"):
                         st.download_button(
                             label=f"Download {file['original_name']}",
                             data=base64.b64decode(file['decoded_data']),
