@@ -62,7 +62,7 @@ def get_pgn_games(pgn_string: str):
         games.append(game)
     return games
 
-async def encode_chunk(chunk, start_index):
+async def encode_chunk(chunk):
     chess_board = chess.Board()
     moves = []
     chunk_bit_index = 0
@@ -100,11 +100,11 @@ async def encode(file_bytes: bytes, num_bots: int):
     chunk_size = max(1, len(file_bytes) // num_bots)
     chunks = [file_bytes[i:i + chunk_size] for i in range(0, len(file_bytes), chunk_size)]
 
-    tasks = [encode_chunk(chunk, i * chunk_size) for i, chunk in enumerate(chunks)]
+    tasks = [encode_chunk(chunk) for chunk in chunks]
     games = await asyncio.gather(*tasks)
 
     end_time = time.time()
-    print(f"\nsuccessfully converted file to pgn with {len(games)} game(s) ({round(end_time - start_time, 3)}s).")
+    print(f"\nsuccessfully converted file to PGN with {len(games)} game(s) ({round(end_time - start_time, 3)}s).")
     return "\n\n".join(str(game) for game in games)
 
 def decode_chunk(game):
@@ -140,7 +140,7 @@ async def decode(pgn_string: str):
             byte_data.append(int(byte, 2))
 
     end_time = time.time()
-    print(f"\nsuccessfully decoded pgn with {len(games)} game(s) ({round(end_time - start_time, 3)}s).")
+    print(f"\nsuccessfully decoded PGN with {len(games)} game(s) ({round(end_time - start_time, 3)}s).")
     return byte_data
 
 def get_mime_type(file_name):
@@ -202,7 +202,8 @@ def main():
 
                         with st.spinner(f"Encoding {uploaded_file.name}..."):
                             file_bytes = uploaded_file.getvalue()
-                            pgn_output = await encode(file_bytes, num_bots)
+                            # Use asyncio.run to call the async function
+                            pgn_output = asyncio.run(encode(file_bytes, num_bots))
 
                         encoded_data = {
                             "original_name": uploaded_file.name,
@@ -248,7 +249,8 @@ def main():
 
                         with st.spinner(f"Decoding {pgn_file.name}..."):
                             pgn_content = pgn_file.getvalue().decode("utf-8")
-                            decoded_data = await decode(pgn_content)
+                            # Use asyncio.run to call the async function
+                            decoded_data = asyncio.run(decode(pgn_content))
 
                         original_name = pgn_file.name.rsplit('.', 1)[0]  # Remove .pgn extension
                         st.session_state.decoded_files.append({
